@@ -20,7 +20,7 @@ LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 9.4/Uploads/ARA July Data Wa
 INTO TABLE StagingReferral
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
-LINES TERMINATED BY '\r\n'  -- Use '\n' if needed
+LINES TERMINATED BY '\r\n'
 IGNORE 1 ROWS
 (ReferralDate, ReferredBy, NHI, PatientName, DOB, Department, AddedToWaitlistDate, Surgeon, FsaDate, HealthTargetEligible);
 
@@ -31,27 +31,45 @@ SELECT DISTINCT
   STR_TO_DATE(NULLIF(DOB, ''), '%d/%m/%Y')
 FROM StagingReferral;
 
+INSERT IGNORE INTO Department (Name)
+SELECT DISTINCT Department
+FROM StagingReferral
+WHERE Department IS NOT NULL AND Department <> '';
+
+INSERT IGNORE INTO Worker (FullName, Role)
+SELECT DISTINCT ReferredBy, 'Referrer'
+FROM StagingReferral
+WHERE ReferredBy IS NOT NULL AND ReferredBy <> '';
+
+INSERT IGNORE INTO Worker (FullName, Role)
+SELECT DISTINCT Surgeon, 'Surgeon'
+FROM StagingReferral
+WHERE Surgeon IS NOT NULL AND Surgeon <> '';
+
 INSERT INTO Referral (
   NHI,
   ReferralDate,
-  ReferredBy,
-  Department,
+  DepartmentID,
+  ReferrerID,
+  SurgeonID,
   AddedToWaitlistDate,
-  Surgeon,
   FsaDate,
   HealthTargetEligible
 )
 SELECT
-  NHI,
-  STR_TO_DATE(NULLIF(ReferralDate, ''), '%d/%m/%Y'),
-  ReferredBy,
-  Department,
-  STR_TO_DATE(NULLIF(AddedToWaitlistDate, ''), '%d/%m/%Y'),
-  Surgeon,
-  STR_TO_DATE(NULLIF(FsaDate, ''), '%d/%m/%Y'),
+  s.NHI,
+  STR_TO_DATE(NULLIF(s.ReferralDate, ''), '%d/%m/%Y'),
+  d.DepartmentID,
+  wr.WorkerID AS ReferrerID,
+  ws.WorkerID AS SurgeonID,
+  STR_TO_DATE(NULLIF(s.AddedToWaitlistDate, ''), '%d/%m/%Y'),
+  STR_TO_DATE(NULLIF(s.FsaDate, ''), '%d/%m/%Y'),
   CASE 
-    WHEN LOWER(TRIM(HealthTargetEligible)) = 'yes' THEN TRUE
-    WHEN LOWER(TRIM(HealthTargetEligible)) = 'no' THEN FALSE
+    WHEN LOWER(TRIM(s.HealthTargetEligible)) = 'yes' THEN TRUE
+    WHEN LOWER(TRIM(s.HealthTargetEligible)) = 'no'  THEN FALSE
     ELSE NULL
   END
-FROM StagingReferral;
+FROM StagingReferral s
+LEFT JOIN Department d ON d.Name = s.Department
+LEFT JOIN Worker wr ON wr.FullName = s.ReferredBy AND wr.Role='Referrer'
+LEFT JOIN Worker ws ON ws.FullName = s.Surgeon AND ws.Role='Surgeon';
