@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS WorkerAvailability (
 CREATE TABLE IF NOT EXISTS Referral (
     ReferralID INT AUTO_INCREMENT PRIMARY KEY,
     NHI VARCHAR(10) NOT NULL,
-    ReferralDate DATE NOT NULL,
+    ReferralDate DATE,
     DepartmentID INT,
     ReferrerID INT,
     SurgeonID INT,
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS Contact (
     ContactID INT AUTO_INCREMENT PRIMARY KEY,
     ReferralID INT NOT NULL,
     WorkerID INT NULL,
-    ContactDate DATETIME NOT NULL,
+    ContactDate DATETIME,
     ActionTaken VARCHAR(255) NOT NULL,
     FollowUpContactID INT NULL,
     FOREIGN KEY (ReferralID) REFERENCES Referral(ReferralID),
