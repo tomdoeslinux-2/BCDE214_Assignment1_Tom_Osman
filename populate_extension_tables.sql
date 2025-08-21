@@ -1,3 +1,5 @@
+SET SQL_SAFE_UPDATES = 0;
+
 USE SysmexReferralsDB;
 
 INSERT INTO WorkerAvailability (WorkerID, StartDT, EndDT)
